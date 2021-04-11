@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font: 16px Arial;
+    }
+
+    /*the container must be positioned relative:*/
+    .autocomplete {
+      position: relative;
+      display: inline-block;
+    }
+
+    input {
+      border: 1px solid transparent;
+      background-color: #f1f1f1;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    input[type=text] {
+      background-color: #f1f1f1;
+      width: 100%;
+    }
+
+    input[type=submit] {
+      background-color: DodgerBlue;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .autocomplete-items {
+      position: absolute;
+      border: 1px solid #d4d4d4;
+      border-bottom: none;
+      border-top: none;
+      z-index: 99;
+      /*position the autocomplete items to be the same width as the container:*/
+      top: 100%;
+      left: 0;
+      right: 0;
+    }
+
+    .autocomplete-items div {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #fff;
+      border-bottom: 1px solid #d4d4d4;
+    }
+
+    /*when hovering an item:*/
+    .autocomplete-items div:hover {
+      background-color: #e9e9e9;
+    }
+
+    /*when navigating through the items using the arrow keys:*/
+    .autocomplete-active {
+      background-color: DodgerBlue !important;
+      color: #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+  {% include 'home/title.html' %}
+  <center>
+    <br>
+    <h1>Enter Symbol</h1>
+    <div class="autocomplete" style="width:300px;">
+      <input id="myInput" type="text" name="company" placeholder="Enter Symbol ...">
+    </div>
+    <input type="submit" onclick="my_function()">
+  </center>
+
+  <script>
+    function my_function() {
+      var x = document.getElementById("myInput");
+      v = x.value;
+      base_url = 'http://127.0.0.1:8000/plotly/company/';
+      base_url += x.value;
+      location.href = base_url
+    }
+
+    function autocomplete(inp, arr) {
+      /*the autocomplete function takes two arguments,
+      the text field element and an array of possible autocompleted values:*/
+      var currentFocus;
+      /*execute a function when someone writes in the text field:*/
+      inp.addEventListener("input", function (e) {
+        var a, b, i, val = this.value;
+        /*close any already open lists of autocompleted values*/
+        closeAllLists();
+        if (!val) { return false; }
+        currentFocus = -1;
+        /*create a DIV element that will contain the items (values):*/
+        a = document.createElement("DIV");
+        a.setAttribute("id", this.id + "autocomplete-list");
+        a.setAttribute("class", "autocomplete-items");
+        /*append the DIV element as a child of the autocomplete container:*/
+        this.parentNode.appendChild(a);
+        /*for each item in the array...*/
+        for (i = 0; i < arr.length; i++) {
+          /*check if the item starts with the same letters as the text field value:*/
+          if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+            /*create a DIV element for each matching element:*/
+            b = document.createElement("DIV");
+            /*make the matching letters bold:*/
+            b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+            b.innerHTML += arr[i].substr(val.length);
+            /*insert a input field that will hold the current array item's value:*/
+            b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+            /*execute a function when someone clicks on the item value (DIV element):*/
+            b.addEventListener("click", function (e) {
+              /*insert the value for the autocomplete text field:*/
+              inp.value = this.getElementsByTagName("input")[0].value;
+              /*close the list of autocompleted values,
+              (or any other open lists of autocompleted values:*/
+              closeAllLists();
+            });
+            a.appendChild(b);
+          }
+        }
+      });
+      /*execute a function presses a key on the keyboard:*/
+      
+      inp.addEventListener("keydown", function (e) {
+        var x = document.getElementById(this.id + "autocomplete-list");
+        if (x) x = x.getElementsByTagName("div");
+        if (e.keyCode == 40) {
+          /*If the arrow DOWN key is pressed,
+          increase the currentFocus variable:*/
+          currentFocus++;
+          /*and and make the current item more visible:*/
+          addActive(x);
+        } else if (e.keyCode == 38) { //up
+          /*If the arrow UP key is pressed,
+          decrease the currentFocus variable:*/
+          currentFocus--;
+          /*and and make the current item more visible:*/
+          addActive(x);
+        } else if (e.keyCode == 13) {
+          /*If the ENTER key is pressed, prevent the form from being submitted,*/
+          e.preventDefault();
+          if (currentFocus > -1) {
+            /*and simulate a click on the "active" item:*/
+            if (x) x[currentFocus].click();
+          }
+        }
+      });
+      function addActive(x) {
+        /*a function to classify an item as "active":*/
+        if (!x) return false;
+        /*start by removing the "active" class on all items:*/
+        removeActive(x);
+        if (currentFocus >= x.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (x.length - 1);
+        /*add class "autocomplete-active":*/
+        x[currentFocus].classList.add("autocomplete-active");
+      }
+      function removeActive(x) {
+        /*a function to remove the "active" class from all autocomplete items:*/
+        for (var i = 0; i < x.length; i++) {
+          x[i].classList.remove("autocomplete-active");
+        }
+      }
+      function closeAllLists(elmnt) {
+        /*close all autocomplete lists in the document,
+        except the one passed as an argument:*/
+        var x = document.getElementsByClassName("autocomplete-items");
+        for (var i = 0; i < x.length; i++) {
+          if (elmnt != x[i] && elmnt != inp) {
+            x[i].parentNode.removeChild(x[i]);
+          }
+        }
+      }
+      /*execute a function when someone clicks in the document:*/
+      document.addEventListener("click", function (e) {
+        closeAllLists(e.target);
+      });
+    }
+
+    /*An array containing all the country names in the world:*/
+    var countries = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Anguilla", "Antigua & Barbuda", "Argentina", "Armenia", "Aruba", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivia", "Bosnia & Herzegovina", "Botswana", "Brazil", "British Virgin Islands", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Cayman Islands", "Central Arfrican Republic", "Chad", "Chile", "China", "Colombia", "Congo", "Cook Islands", "Costa Rica", "Cote D Ivoire", "Croatia", "Cuba", "Curacao", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia", "Falkland Islands", "Faroe Islands", "Fiji", "Finland", "France", "French Polynesia", "French West Indies", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Gibraltar", "Greece", "Greenland", "Grenada", "Guam", "Guatemala", "Guernsey", "Guinea", "Guinea Bissau", "Guyana", "Haiti", "Honduras", "Hong Kong", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Isle of Man", "Israel", "Italy", "Jamaica", "Japan", "Jersey", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Macau", "Macedonia", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Montserrat", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauro", "Nepal", "Netherlands", "Netherlands Antilles", "New Caledonia", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Puerto Rico", "Qatar", "Reunion", "Romania", "Russia", "Rwanda", "Saint Pierre & Miquelon", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "St Kitts & Nevis", "St Lucia", "St Vincent", "Sudan", "Suriname", "Swaziland", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor L'Este", "Togo", "Tonga", "Trinidad & Tobago", "Tunisia", "Turkey", "Turkmenistan", "Turks & Caicos", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Virgin Islands (US)", "Yemen", "Zambia", "Zimbabwe"];
+
+    var companys=['20MICRONS', '21STCENMGM', '3IINFOTECH', '3MINDIA', '3PLAND', '5PAISA', '63MOONS', 'A2ZINFRA', 'AAKASH', 'AARON', 'AARTIDRUGS', 'AARTIIND', 'AARTISURF', 'AARVEEDEN', 'AARVI', 'AAVAS', 'ABAN', 'ABB', 'ABBOTINDIA', 'ABCAPITAL', 'ABFRL', 'ABMINTLTD', 'ACC', 'ACCELYA', 'ACCURACY', 'ACE', 'ACRYSIL', 'ADANIENT', 'ADANIGREEN', 'ADANIPORTS', 'ADANIPOWER', 'ADANITRANS', 'ADFFOODS', 'ADHUNIKIND', 'ADL', 'ADORWELD', 'ADROITINFO', 'ADSL', 'ADVANIHOTR', 'ADVENZYMES', 'AEGISCHEM', 'AFFLE', 'AGARIND', 'AGCNET', 'AGRITECH', 'AGROPHOS', 'AHLADA', 'AHLEAST', 'AHLUCONT', 'AHLWEST', 'AIAENG', 'AIRAN', 'AJANTPHARM', 'AJMERA', 'AKASH', 'AKG', 'AKSHARCHEM', 'AKSHOPTFBR', 'AKZOINDIA', 'ALANKIT', 'ALBERTDAVD', 'ALCHEM', 'ALEMBICLTD', 'ALICON', 'ALKALI', 'ALKEM', 'ALKYLAMINE', 'ALLCARGO', 'ALLSEC', 'ALMONDZ', 'ALOKINDS', 'ALPA', 'ALPHAGEO', 'ALPSINDUS', 'AMARAJABAT', 'AMBER', 'AMBIKCO', 'AMBUJACEM', 'AMDIND', 'AMJLAND', 'AMRUTANJAN', 'ANANTRAJ', 'ANDHRACEMT', 'ANDHRAPAP', 'ANDHRSUGAR', 'ANGELBRKG', 'ANIKINDS', 'ANKITMETAL', 'ANSALAPI', 'ANSALHSG', 'ANTGRAPHIC', 'ANUP', 'APARINDS', 'APCL', 'APCOTEXIND', 'APEX', 'APLAPOLLO', 'APLLTD', 'APOLLO', 'APOLLOHOSP', 'APOLLOPIPE', 'APOLLOTYRE', 'APOLSINHOT', 'APTECHT', 'ARCHIDPLY', 'ARCHIES', 'ARCOTECH', 'ARENTERP', 'ARIES', 'ARIHANT', 'ARIHANTSUP', 'ARMANFIN', 'AROGRANITE', 'ARROWGREEN', 'ARSHIYA', 'ARSSINFRA', 'ARTEMISMED', 'ARVEE', 'ARVIND', 'ARVINDFASN', 'ARVSMART', 'ASAHIINDIA', 'ASAHISONG', 'ASAL', 'ASALCBR', 'ASHAPURMIN', 'ASHIANA', 'ASHIMASYN', 'ASHOKA', 'ASHOKLEY', 'ASIANHOTNR', 'ASIANPAINT', 'ASIANTILES', 'ASPINWALL', 'ASTEC', 'ASTERDM', 'ASTRAL', 'ASTRAMICRO', 'ASTRAZEN', 'ASTRON', 'ATFL', 'ATGL', 'ATLANTA', 'ATLASCYCLE', 'ATUL', 'ATULAUTO', 'AUBANK', 'AURIONPRO', 'AUROPHARMA', 'AUSOMENT', 'AUTOAXLES', 'AUTOIND', 'AVADHSUGAR', 'AVANTIFEED', 'AVTNPL', 'AWHCL', 'AXISBANK', 'AXISCADES', 'AYMSYNTEX', 'BAFNAPH', 'BAGFILMS', 'BAJAJ-AUTO', 'BAJAJCON', 'BAJAJELEC', 'BAJAJFINSV', 'BAJAJHIND', 'BAJAJHLDNG', 'BAJFINANCE', 'BALAJITELE', 'BALAMINES', 'BALAXI', 'BALKRISHNA', 'BALKRISIND', 'BALLARPUR', 'BALMLAWRIE', 'BALPHARMA', 'BALRAMCHIN', 'BANARBEADS', 'BANARISUG', 'BANCOINDIA', 'BANDHANBNK', 'BANG', 'BANKA', 'BANKBARODA', 'BANKINDIA', 'BANSWRAS', 'BARTRONICS', 'BASF', 'BASML', 'BATAINDIA', 'BAYERCROP', 'BBL', 'BBTC', 'BCG', 'BCLIND', 'BCP', 'BDL', 'BEARDSELL', 'BECTORFOOD', 'BEDMUTHA', 'BEL', 'BEML', 'BEPL', 'BERGEPAINT', 'BESTAGRO', 'BFINVEST', 'BFUTILITIE', 'BGLOBAL', 'BGRENERGY', 'BHAGERIA', 'BHAGYANGR', 'BHAGYAPROP', 'BHANDARI', 'BHARATFORG', 'BHARATGEAR', 'BHARATRAS', 'BHARATWIRE', 'BHARTIARTL', 'BHEL', 'BIGBLOC', 'BIL', 'BILENERGY', 'BINDALAGRO', 'BIOCON', 'BIOFILCHEM', 'BIRLACABLE', 'BIRLACORPN', 'BIRLAMONEY', 'BIRLATYRE', 'BKMINDST', 'BLBLIMITED', 'BLISSGVS', 'BLKASHYAP', 'BLS', 'BLUECHIP', 'BLUECOAST', 'BLUEDART', 'BLUESTARCO', 'BODALCHEM', 'BOMDYEING', 'BOROLTD', 'BORORENEW', 'BOSCHLTD', 'BPCL', 'BPL', 'BRFL', 'BRIGADE', 'BRITANNIA', 'BRNL', 'BROOKS', 'BSE', 'BSELINFRA', 'BSHSL', 'BSL', 'BSOFT', 'BURGERKING', 'BURNPUR', 'BUTTERFLY', 'BVCL', 'BYKE', 'CADILAHC', 'CALSOFT', 'CAMLINFINE', 'CAMS', 'CANBK', 'CANDC', 'CANFINHOME', 'CANTABIL', 'CAPACITE', 'CAPLIPOINT', 'CAPTRUST', 'CARBORUNIV', 'CAREERP', 'CARERATING', 'CASTEXTECH', 'CASTROLIND', 'CCCL', 'CCHHL', 'CCL', 'CDSL', 'CEATLTD', 'CEBBCO', 'CELEBRITY', 'CENTENKA', 'CENTEXT', 'CENTRALBK', 'CENTRUM', 'CENTUM', 'CENTURYPLY', 'CENTURYTEX', 'CERA', 'CEREBRAINT', 'CESC', 'CGCL', 'CGPOWER', 'CHALET', 'CHAMBLFERT', 'CHEMBOND', 'CHEMCON', 'CHEMFAB', 'CHENNPETRO', 'CHOLAFIN', 'CHOLAHLDNG', 'CHROMATIC', 'CIGNITITEC', 'CINELINE', 'CINEVISTA', 'CIPLA', 'CKFSL', 'CLEDUCATE', 'CLNINDIA', 'CMICABLES', 'CNOVAPETRO', 'COALINDIA', 'COCHINSHIP', 'COFORGE', 'COLPAL', 'COMPINFO', 'COMPUSOFT', 'CONCOR', 'CONFIPET', 'CONSOFINVT', 
+'CONTROLPR', 'CORALFINAC', 'CORDSCABLE', 'COROMANDEL', 'COSMOFILMS', 'COUNCODOS', 'COX&KINGS', 'CREATIVE', 'CREATIVEYE', 'CREDITACC', 
+'CREST', 'CRISIL', 'CROMPTON', 'CSBBANK', 'CTE', 'CUB', 'CUBEXTUB', 'CUMMINSIND', 'CUPID', 'CURATECH', 'CYBERMEDIA', 'CYBERTECH', 'CYIENT', 'DAAWAT', 'DABUR', 'DALBHARAT', 'DALMIASUG', 'DAMODARIND', 'DANGEE', 'DATAMATICS', 'DBCORP', 'DBL', 'DBREALTY', 'DBSTOCKBRO', 'DCAL', 'DCBBANK', 'DCM', 'DCMFINSERV', 'DCMNVL', 'DCMSHRIRAM', 'DCW', 'DECCANCE', 'DEEPAKFERT', 'DEEPAKNTR', 'DEEPENR', 'DELTACORP', 'DELTAMAGNT', 'DEN', 'DENORA', 'DFMFOODS', 'DGCONTENT', 'DHAMPURSUG', 'DHANBANK', 'DHANI', 'DHANUKA', 'DHARSUGAR', 'DHFL', 'DHUNINV', 'DIAMONDYD', 'DICIND', 'DIGISPICE', 'DISHTV', 'DIVISLAB', 'DIXON', 'DLF', 'DLINKINDIA', 'DMART', 'DNAMEDIA', 'DOLAT', 'DOLLAR', 'DONEAR', 'DPABHUSHAN', 'DPSCLTD', 'DPWIRES', 'DQE', 'DRCSYSTEMS', 'DREDGECORP', 'DRREDDY', 'DSSL', 'DTIL', 'DUCON', 'DVL', 'DWARKESH', 'DYNAMATECH', 'DYNPRO', 'EASEMYTRIP', 'EASTSILK', 'EASUNREYRL', 'EBIXFOREX', 'ECLERX', 'EDELWEISS', 'EDUCOMP', 'EICHERMOT', 'EIDPARRY', 'EIHAHOTELS', 'EIHOTEL', 'EIMCOELECO', 'EKC', 'ELECON', 'ELECTCAST', 'ELECTHERM', 'ELGIEQUIP', 'ELGIRUBCO', 'EMAMILTD', 'EMAMIPAP', 'EMAMIREAL', 'EMCO', 'EMKAY', 'EMMBI', 'ENDURANCE', 'ENERGYDEV', 'ENGINERSIN', 'ENIL', 'EPL', 'EQUITAS', 'EQUITASBNK', 'ERIS', 'EROSMEDIA', 
+'ESABINDIA', 'ESCORTS', 'ESSARSHPNG', 'ESTER', 'EUROMULTI', 'EUROTEXIND', 'EVEREADY', 'EVERESTIND', 'EXCEL', 'EXCELINDUS', 'EXIDEIND', 'EXPLEOSOL', 'FACT', 'FAIRCHEMOR', 'FCL', 'FCONSUMER', 'FCSSOFT', 'FDC', 'FEDERALBNK', 'FEL', 'FELDVR', 'FIEMIND', 'FILATEX', 'FINCABLES', 'FINEORG', 'FINPIPE', 'FLEXITUFF', 'FLFL', 'FLUOROCHEM', 'FMGOETZE', 'FMNL', 'FORCEMOT', 'FORTIS', 'FOSECOIND', 'FRETAIL', 'FSC', 'FSL', 'GABRIEL', 'GAEL', 'GAIL', 'GAL', 'GALAXYSURF', 'GALLANTT', 'GALLISPAT', 'GAMMNINFRA', 'GANDHITUBE', 'GANECOS', 'GANESHHOUC', 'GANGESSECU', 'GANGOTRI', 'GARFIBRES', 'GATI', 'GAYAHWS', 'GAYAPROJ', 'GBGLOBAL', 'GDL', 'GEECEE', 'GEEKAYWIRE', 'GENCON', 'GENESYS', 'GENUSPAPER', 'GENUSPOWER', 'GEOJITFSL', 'GEPIL', 'GESHIP', 'GET&D', 'GFLLIMITED', 'GFSTEELS', 'GHCL', 'GICHSGFIN', 'GICRE', 'GILLANDERS', 'GILLETTE', 'GINNIFILA', 'GIPCL', 'GISOLUTION', 'GKWLIMITED', 'GLAND', 'GLAXO', 'GLENMARK', 'GLFL', 'GLOBAL', 'GLOBALVECT', 'GLOBE', 'GLOBUSSPR', 'GMBREW', 'GMDCLTD', 'GMMPFAUDLR', 'GMRINFRA', 'GNA', 'GNFC', 'GOACARBON', 'GOCLCORP', 'GODFRYPHLP', 'GODHA', 'GODREJAGRO', 'GODREJCP', 'GODREJIND', 'GODREJPROP', 'GOENKA', 'GOKEX', 'GOKUL', 'GOKULAGRO', 'GOLDENTOBC', 'GOLDIAM', 'GOLDTECH', 'GOODLUCK', 'GOODYEAR', 'GPIL', 'GPPL', 'GPTINFRA', 'GRANULES', 'GRAPHITE', 'GRASIM', 'GRAVITA', 'GREAVESCOT', 'GREENLAM', 'GREENPANEL', 'GREENPLY', 'GREENPOWER', 'GRINDWELL', 'GROBTEA', 'GRPLTD', 'GRSE', 'GSCLCEMENT', 'GSFC', 'GSPL', 'GSS', 'GTL', 'GTLINFRA', 'GTNTEX', 'GTPL', 'GUFICBIO', 'GUJALKALI', 'GUJAPOLLO', 'GUJGASLTD', 'GUJRAFFIA', 'GULFOILLUB', 'GULFPETRO', 'GULPOLY', 'GVKPIL', 'HAL', 'HAPPSTMNDS', 'HARITASEAT', 'HARRMALAYA', 'HATHWAY', 'HATSUN', 'HAVELLS', 'HAVISHA', 'HBLPOWER', 'HBSL', 'HCC', 'HCG', 'HCL-INSYS', 'HCLTECH', 'HDFC', 'HDFCAMC', 'HDFCBANK', 'HDFCLIFE', 'HDIL', 'HEG', 'HEIDELBERG', 'HEMIPROP', 'HERANBA', 'HERCULES', 'HERITGFOOD', 'HEROMOTOCO', 'HESTERBIO', 'HEXATRADEX', 'HFCL', 'HGINFRA', 'HGS', 'HIKAL', 'HIL', 'HILTON', 'HIMATSEIDE', 'HINDALCO', 'HINDCOMPOS', 'HINDCOPPER', 'HINDMOTORS', 'HINDNATGLS', 'HINDOILEXP', 'HINDPETRO', 'HINDUNILVR', 'HINDZINC', 'HIRECT', 'HISARMETAL', 'HITECH', 'HITECHCORP', 'HITECHGEAR', 'HLEGLAS', 'HLVLTD', 'HMT', 'HMVL', 'HNDFDS', 'HOMEFIRST', 'HONAUT', 'HONDAPOWER', 'HOTELRUGBY', 'HOVS', 'HPL', 'HSCL', 'HSIL', 'HTMEDIA', 'HUBTOWN', 'HUDCO', 'HUHTAMAKI', 'IBREALEST', 'IBULHSGFIN', 'ICEMAKE', 'ICICIBANK', 'ICICIGI', 'ICICIPRULI', 'ICIL', 'ICRA', 'IDBI', 'IDEA', 'IDFC', 'IDFCFIRSTB', 'IEX', 'IFBAGRO', 'IFBIND', 'IFCI', 'IFGLEXPOR', 'IGARASHI', 'IGL', 'IGPL', 'IIFL', 'IIFLSEC', 
+'IIFLWAM', 'IITL', 'IL&FSENGG', 'IL&FSTRANS', 'IMAGICAA', 'IMFA', 'IMPAL', 'IMPEXFERRO', 'INDBANK', 'INDHOTEL', 'INDIACEM', 'INDIAGLYCO', 'INDIAMART', 'INDIANB', 'INDIANCARD', 'INDIANHUME', 'INDIGO', 'INDIGOPNTS', 'INDLMETER', 'INDNIPPON', 'INDOCO', 'INDORAMA', 'INDOSOLAR', 'INDOSTAR', 'INDOTECH', 'INDOTHAI', 'INDOWIND', 'INDRAMEDCO', 'INDSWFTLAB', 'INDSWFTLTD', 'INDTERRAIN', 'INDUSINDBK', 'INDUSTOWER', 'INEOSSTYRO', 'INFIBEAM', 'INFOBEAN', 'INFOMEDIA', 'INFY', 'INGERRAND', 'INOXLEISUR', 'INOXWIND', 'INSECTICID', 'INSPIRISYS', 'INTEGRA', 'INTELLECT', 'INTENTECH', 'INVENTURE', 'IOB', 'IOC', 'IOLCP', 'IPCALAB', 'IRB', 'IRCON', 'IRCTC', 'IRFC', 'IRISDOREME', 'ISEC', 'ISFT', 'ISMTLTD', 'ITC', 'ITDC', 'ITDCEM', 'ITI', 'IVC', 'IVP', 'IZMO', 'J&KBANK', 'JAGRAN', 'JAGSNPHARM', 'JAIBALAJI', 'JAICORPLTD', 'JAINSTUDIO', 'JAMNAAUTO', 'JASH', 'JAYAGROGN', 'JAYBARMARU', 'JAYNECOIND', 'JAYSREETEA', 'JBCHEPHARM', 'JBFIND', 'JBMA', 'JCHAC', 
+'JETAIRWAYS', 'JHS', 'JIKIND', 'JINDALPHOT', 'JINDALPOLY', 'JINDALSAW', 'JINDALSTEL', 'JINDCOT', 'JINDRILL', 'JINDWORLD', 'JISLDVREQS', 'JISLJALEQS', 'JITFINFRA', 'JIYAECO', 'JKCEMENT', 'JKIL', 'JKLAKSHMI', 'JKPAPER', 'JKTYRE', 'JMA', 'JMCPROJECT', 'JMFINANCIL', 'JMTAUTOLTD', 'JOCIL', 'JPASSOCIAT', 'JPINFRATEC', 'JPOLYINVST', 'JPPOWER', 'JSL', 'JSLHISAR', 'JSWENERGY', 'JSWHL', 'JSWISPL', 'JSWSTEEL', 'JTEKTINDIA', 'JUBLFOOD', 'JUBLINDS', 'JUBLINGREA', 'JUBLPHARMA', 'JUMPNET', 'JUSTDIAL', 'JYOTHYLAB', 'JYOTISTRUC', 'KABRAEXTRU', 'KAJARIACER', 'KAKATCEM', 'KALPATPOWR', 'KALYANI', 'KALYANIFRG', 'KAMATHOTEL', 'KAMDHENU', 'KANANIIND', 'KANORICHEM', 'KANPRPLA', 'KANSAINER', 'KAPSTON', 'KARDA', 'KARMAENG', 'KARURVYSYA', 'KAUSHALYA', 'KAVVERITEL', 'KAYA', 'KCP', 'KCPSUGIND', 'KDDL', 'KEC', 'KECL', 'KEERTI', 'KEI', 'KELLTONTEC', 'KENNAMET', 'KERNEX', 'KESORAMIND', 'KEYFINSERV', 'KGL', 'KHADIM', 'KHAICHEM', 'KHAITANLTD', 'KHANDSE', 'KICL', 'KILITCH', 'KINGFA', 'KIOCL', 'KIRIINDUS', 'KIRLFER', 'KIRLOSBROS', 'KIRLOSENG', 'KIRLOSIND', 'KITEX', 'KKCL', 'KMSUGAR', 'KNRCON', 'KOHINOOR', 'KOKUYOCMLN', 'KOLTEPATIL', 'KOPRAN', 'KOTAKBANK', 'KOTARISUG', 'KOTHARIPET', 'KOTHARIPRO', 'KPITTECH', 'KPRMILL', 'KRBL', 'KREBSBIO', 'KRIDHANINF', 'KRISHANA', 'KSB', 'KSCL', 'KSERASERA', 'KSL', 'KTKBANK', 'KUANTUM', 'L&TFH', 'LAKPRE', 'LALPATHLAB', 'LAMBODHARA', 'LAOPALA', 'LASA', 'LAURUSLABS', 'LAXMIMACH', 'LEMONTREE', 'LFIC', 'LGBBROSLTD', 'LGBFORGE', 'LIBAS', 'LIBERTSHOE', 'LICHSGFIN', 'LIKHITHA', 'LINCOLN', 'LINCPEN', 'LINDEINDIA', 'LOKESHMACH', 'LOTUSEYE', 'LOVABLE', 'LPDC', 'LSIL', 'LT', 'LTI', 'LTTS', 'LUMAXIND', 'LUMAXTECH', 'LUPIN', 'LUXIND', 'LYKALABS', 'LYPSAGEMS', 'M&M', 'M&MFIN', 'MAANALU', 'MACPOWER', 'MADHAV', 'MADHUCON', 'MADRASFERT', 'MAGADSUGAR', 'MAGMA', 'MAGNUM', 'MAHABANK', 'MAHAPEXLTD', 'MAHASTEEL', 'MAHEPC', 'MAHESHWARI', 'MAHINDCIE', 'MAHLIFE', 'MAHLOG', 'MAHSCOOTER', 'MAHSEAMLES', 'MAITHANALL', 'MAJESCO', 'MALUPAPER', 'MANAKALUCO', 'MANAKCOAT', 'MANAKSIA', 'MANAKSTEEL', 'MANALIPETC', 'MANAPPURAM', 'MANGALAM', 'MANGCHEFER', 'MANGLMCEM', 'MANGTIMBER', 'MANINDS', 'MANINFRA', 'MANUGRAPH', 'MARALOVER', 'MARATHON', 'MARICO', 'MARINE', 'MARKSANS', 'MARUTI', 'MASFIN', 'MASKINVEST', 'MASTEK', 'MATRIMONY', 'MAWANASUG', 'MAXHEALTH', 'MAXIND', 'MAXVIL', 'MAYURUNIQ', 'MAZDA', 'MAZDOCK', 'MBAPL', 'MBECL', 'MBLINFRA', 'MCDHOLDING', 'MCDOWELL-N', 'MCL', 'MCLEODRUSS', 'MCX', 'MEGASOFT', 'MEGH', 'MELSTAR', 'MENONBE', 'MEP', 'MERCATOR', 'METALFORGE', 'METROPOLIS', 'MFSL', 'MGEL', 'MGL', 'MHRIL', 'MIC', 'MIDHANI', 'MINDACORP', 'MINDAIND', 'MINDTECK', 'MINDTREE', 'MIRCELECTR', 'MIRZAINT', 'MITTAL', 'MMFL', 'MMP', 'MMTC', 'MODIRUBBER', 'MOHITIND', 'MOHOTAIND', 'MOIL', 'MOLDTECH', 'MOLDTKPAC', 'MONTECARLO', 'MORARJEE', 'MOREPENLAB', 'MOTHERSUMI', 'MOTILALOFS', 'MOTOGENFIN', 'MPHASIS', 'MPSLTD', 'MRF', 'MRO-TEK', 'MRPL', 'MSPL', 'MSTCLTD', 'MTARTECH', 'MTEDUCARE', 'MTNL', 'MUKANDENGG', 'MUKANDLTD', 'MUKTAARTS', 'MUNJALAU', 'MUNJALSHOW', 'MURUDCERA', 'MUTHOOTCAP', 'MUTHOOTFIN', 'NACLIND', 'NAGAFERT', 'NAGREEKCAP', 'NAGREEKEXP', 'NAHARCAP', 'NAHARINDUS', 'NAHARPOLY', 'NAHARSPING', 'NAM-INDIA', 'NATCOPHARM', 'NATHBIOGEN', 'NATIONALUM', 'NATNLSTEEL', 'NAUKRI', 'NAVINFLUOR', 'NAVKARCORP', 'NAVNETEDUL', 'NBCC', 'NBIFIN', 'NBVENTURES', 'NCC', 'NCLIND', 'NDGL', 'NDL', 'NDRAUTO', 'NDTV', 'NECCLTD', 'NECLIFE', 'NELCAST', 'NELCO', 
+'NEOGEN', 'NESCO', 'NESTLEIND', 'NETWORK18', 'NEULANDLAB', 'NEWGEN', 'NEXTMEDIA', 'NFL', 'NH', 'NHPC', 'NIACL', 'NIBL', 'NIITLTD', 'NILAINFRA', 'NILASPACES', 'NILKAMAL', 'NIPPOBATRY', 'NIRAJ', 'NIRAJISPAT', 'NITCO', 'NITINFIRE', 'NITINSPIN', 'NKIND', 'NLCINDIA', 'NMDC', 'NOCIL', 'NOIDATOLL', 'NORBTEAEXP', 'NOVARTIND', 'NRAIL', 'NRBBEARING', 'NSIL', 'NTL', 'NTPC', 'NUCLEUS', 'NURECA', 'NXTDIGITAL', 'OAL', 'OBEROIRLTY', 'OCCL', 'OFSS', 'OIL', 'OILCOUNTUB', 'OISL', 'OLECTRA', 'OMAXAUTO', 'OMAXE', 'OMINFRAL', 'OMKARCHEM', 'ONELIFECAP', 'ONEPOINT', 'ONGC', 'ONMOBILE', 'ONWARDTEC', 'OPTIEMUS', 'OPTOCIRCUI', 'ORBTEXP', 'ORCHPHARMA', 'ORICONENT', 'ORIENTABRA', 'ORIENTALTL', 'ORIENTBELL', 'ORIENTCEM', 'ORIENTELEC', 'ORIENTHOT', 'ORIENTLTD', 'ORIENTPPR', 'ORIENTREF', 'ORISSAMINE', 'ORTEL', 'OSWALAGRO', 
+'PAEL', 'PAGEIND', 'PAISALO', 'PALASHSECU', 'PALREDTEC', 'PANACEABIO', 'PANACHE', 'PANAMAPET', 'PARACABLES', 'PARAGMILK', 'PARSVNATH', 'PATELENG', 'PATINTLOG', 'PATSPINLTD', 'PCJEWELLER', 'PDMJEPAPER', 'PDPL', 'PDSMFL', 'PEARLPOLY', 'PEL', 'PENIND', 'PENINLAND', 'PERSISTENT', 'PETRONET', 'PFC', 'PFIZER', 'PFOCUS', 'PFS', 'PGEL', 'PGHH', 'PGHL', 'PGIL', 'PHILIPCARB', 'PHOENIXLTD', 'PIDILITIND', 'PIIND', 'PILANIINVS', 'PILITA', 'PIONDIST', 'PIONEEREMB', 'PITTIENG', 'PKTEA', 'PLASTIBLEN', 'PNB', 'PNBGILTS', 'PNBHOUSING', 'PNC', 'PNCINFRA', 'PODDARHOUS', 'PODDARMENT', 'POKARNA', 'POLYCAB', 'POLYMED', 'POLYPLEX', 'PONNIERODE', 'POWERGRID', 'POWERINDIA', 'POWERMECH', 
+'PPAP', 'PPL', 'PRABHAT', 'PRADIP', 'PRAENG', 'PRAJIND', 'PRAKASH', 'PRAKASHSTL', 'PRAXIS', 'PRECAM', 'PRECOT', 'PRECWIRE', 'PREMEXPLN', 'PREMIER', 'PREMIERPOL', 'PRESSMN', 'PRESTIGE', 'PRICOLLTD', 'PRIMESECU', 'PRINCEPIPE', 'PRIVISCL', 'PROZONINTU', 'PRSMJOHNSN', 'PSB', 'PSPPROJECT', 'PTC', 'PTL', 'PUNJABCHEM', 'PUNJLLOYD', 'PURVA', 'PVR', 'QUESS', 'QUICKHEAL', 'QUINTEGRA', 'RADAAN', 'RADICO', 'RADIOCITY', 'RAILTEL', 'RAIN', 'RAJESHEXPO', 'RAJMET', 'RAJRATAN', 'RAJRAYON', 'RAJSREESUG', 'RAJTV', 'RAJVIR', 'RALLIS', 'RAMANEWS', 'RAMASTEEL', 'RAMCOCEM', 'RAMCOIND', 'RAMCOSYS', 'RAMKY', 'RANASUG', 'RANEENGINE', 'RANEHOLDIN', 'RATNAMANI', 'RAYMOND', 'RBL', 'RBLBANK', 'RCF', 'RCOM', 'RECLTD', 'REDINGTON', 'REFEX', 'REGENCERAM', 'RELAXO', 'RELCAPITAL', 'RELIANCE', 'RELIGARE', 'RELINFRA', 'REMSONSIND', 'RENUKA', 'REPCOHOME', 'REPL', 'REPRO', 'RESPONIND', 'REVATHI', 'RGL', 'RHFL', 'RICOAUTO', 'RIIL', 'RITES', 'RKDL', 'RKEC', 'RKFORGE', 'RMCL', 'RML', 'RNAVAL', 'ROHITFERRO', 'ROHLTD', 'ROLLT', 'ROLTA', 'ROML', 'ROSSARI', 'ROSSELLIND', 'ROUTE', 'RPGLIFE', 'RPOWER', 
+'RPPINFRA', 'RPSGVENT', 'RSSOFTWARE', 'RSWM', 'RSYSTEMS', 'RTNINFRA', 'RTNPOWER', 'RUBYMILLS', 'RUCHI', 'RUCHINFRA', 'RUCHIRA', 'RUPA', 'RUSHIL', 'RVHL', 'RVNL', 'S&SPOWER', 'SABEVENTS', 'SABTN', 'SADBHAV', 'SADBHIN', 'SAFARI', 'SAGARDEEP', 'SAGCEM', 'SAIL', 'SAKAR', 
+'SAKHTISUG', 'SAKSOFT', 'SAKUMA', 'SALASAR', 'SALONA', 'SALSTEEL', 'SALZERELEC', 'SAMBHAAV', 'SANCO', 'SANDESH', 'SANDHAR', 'SANGAMIND', 'SANGHIIND', 'SANGHVIFOR', 'SANGHVIMOV', 'SANGINITA', 'SANOFI', 'SANWARIA', 'SARDAEN', 'SAREGAMA', 'SARLAPOLY', 'SASKEN', 'SASTASUNDR', 'SATHAISPAT', 'SATIA', 'SATIN', 'SBICARD', 'SBILIFE', 'SBIN', 'SCAPDVR', 'SCHAEFFLER', 'SCHAND', 'SCHNEIDER', 'SCI', 'SDBL', 'SEAMECLTD', 'SECURKLOUD', 'SELAN', 'SEPOWER', 'SEQUENT', 'SESHAPAPER', 'SETCO', 'SETUINFRA', 'SEYAIND', 'SEZAL', 'SFL', 'SGL', 'SHAHALLOYS', 'SHAKTIPUMP', 'SHALBY', 'SHALPAINTS', 'SHANKARA', 'SHANTIGEAR', 'SHARDACROP', 'SHARDAMOTR', 'SHAREINDIA', 'SHEMAROO', 'SHIL', 'SHILPAMED', 'SHIRPUR-G', 'SHIVAMAUTO', 'SHIVAMILLS', 'SHIVATEX', 'SHK', 'SHOPERSTOP', 'SHRADHA', 'SHREDIGCEM', 'SHREECEM', 'SHREEPUSHK', 
+'SHREERAMA', 'SHRENIK', 'SHREYANIND', 'SHREYAS', 'SHRIPISTON', 'SHRIRAMCIT', 'SHRIRAMEPC', 'SHYAMCENT', 'SHYAMTEL', 'SICAGEN', 'SICAL', 'SIEMENS', 'SIGIND', 'SIL', 'SILGO', 'SILINV', 'SILLYMONKS', 'SIMBHALS', 'SIMPLEXINF', 'SINTERCOM', 'SINTEX', 'SIRCA', 'SIS', 'SITINET', 'SIYSIL', 'SJVN', 'SKFINDIA', 'SKIL', 'SKIPPER', 'SKMEGGPROD', 'SMARTLINK', 'SMCGLOBAL', 'SMLISUZU', 'SMPL', 'SMSLIFE', 'SMSPHARMA', 'SNOWMAN', 'SOBHA', 'SOLARA', 'SOLARINDS', 'SOMANYCERA', 'SOMATEX', 'SOMICONVEY', 'SONATSOFTW', 'SORILINFRA', 'SOTL', 'SOUTHBANK', 'SOUTHWEST', 'SPAL', 'SPANDANA', 'SPARC', 'SPCENET', 'SPECIALITY', 'SPENCERS', 'SPENTEX', 'SPIC', 'SPICEJET', 'SPLIL', 'SPMLINFRA', 'SPTL', 'SPYL', 'SREEL', 'SREINFRA', 'SRF', 'SRHHYPOLTD', 'SRIPIPES', 'SRPL', 'SRTRANSFIN', 'SSWL', 'STAMPEDE', 'STAR', 'STARCEMENT', 'STARPAPER', 'STCINDIA', 'STEELCITY', 'STEELXIND', 'STEL', 'STERTOOLS', 'STINDIA', 'STLTECH', 'STOVEKRAFT', 'SUBCAPCITY', 'SUBEXLTD', 'SUBROS', 'SUDARSCHEM', 'SUMEETINDS', 'SUMICHEM', 'SUMIT', 'SUMMITSEC', 'SUNCLAYLTD', 'SUNDARAM', 'SUNDARMFIN', 'SUNDARMHLD', 'SUNDRMBRAK', 'SUNDRMFAST', 'SUNFLAG', 'SUNPHARMA', 'SUNTECK', 'SUNTV', 'SUPERHOUSE', 'SUPERSPIN', 'SUPPETRO', 'SUPRAJIT', 'SUPREMEENG', 'SUPREMEIND', 'SUPREMEINF', 'SURANASOL', 'SURANAT&P', 'SURYALAXMI', 'SURYAROSNI', 'SUTLEJTEX', 'SUULD', 'SUVEN', 'SUVENPHAR', 'SUZLON', 'SWANENERGY', 'SWARAJENG', 'SWELECTES', 'SWSOLAR', 'SYMPHONY', 'SYNCOM', 'SYNGENE', 'TAINWALCHM', 'TAJGVK', 'TAKE', 'TALBROAUTO', 'TALWALKARS', 'TALWGYM', 'TANLA', 'TANTIACONS', 'TARAPUR', 'TARC', 'TARMAT', 'TASTYBITE', 'TATACHEM', 'TATACOFFEE', 'TATACOMM', 'TATACONSUM', 
+'TATAELXSI', 'TATAINVEST', 'TATAMETALI', 'TATAMOTORS', 'TATAMTRDVR', 'TATAPOWER', 'TATASTEEL', 'TATASTLBSL', 'TATASTLLP', 'TBZ', 'TCI', 'TCIDEVELOP', 'TCIEXP', 'TCIFINANCE', 'TCNSBRANDS', 'TCPLPACK', 'TCS', 'TDPOWERSYS', 'TEAMLEASE', 'TECHIN', 'TECHM', 'TECHNOE', 'TECHNOFAB', 'TEJASNET', 'TERASOFT', 'TEXINFRA', 'TEXMOPIPES', 'TEXRAIL', 'TFCILTD', 'TFL', 'TGBHOTELS', 'THANGAMAYL', 'THEINVEST', 'THEMISMED', 'THERMAX', 'THIRUSUGAR', 'THOMASCOOK', 'THOMASCOTT', 'THYROCARE', 'TI', 'TIDEWATER', 'TIIL', 'TIINDIA', 'TIJARIA', 'TIL', 'TIMESGTY', 'TIMETECHNO', 'TIMKEN', 'TINPLATE', 'TIPSINDLTD', 'TIRUMALCHM', 'TIRUPATIFL', 'TITAN', 'TMRVL', 'TNPETRO', 'TNPL', 'TNTELE', 'TOKYOPLAST', 'TORNTPHARM', 'TORNTPOWER', 'TOTAL', 'TOUCHWOOD', 'TPLPLASTEH', 'TREEHOUSE', 'TREJHARA', 'TRENT', 'TRF', 'TRIDENT', 'TRIGYN', 'TRIL', 'TRITURBINE', 'TRIVENI', 'TTKHLTCARE', 'TTKPRESTIG', 'TTL', 'TTML', 'TV18BRDCST', 'TVSELECT', 'TVSMOTOR', 'TVSSRICHAK', 'TVTODAY', 'TVVISION', 'TWL', 'UBL', 'UCALFUEL', 'UCOBANK', 'UFLEX', 'UFO', 'UGARSUGAR', 'UJAAS', 'UJJIVAN', 'UJJIVANSFB', 'ULTRACEMCO', 'UMANGDAIRY', 'UMESLTD', 'UNICHEMLAB', 'UNIDT', 'UNIENTER', 'UNIONBANK', 'UNIPLY', 'UNITECH', 'UNITEDTEA', 'UNITY', 'UNIVASTU', 'UNIVCABLES', 'UNIVPHOTO', 'UPL', 'URJA', 'USHAMART', 'UTIAMC', 'UTTAMSTL', 'UTTAMSUGAR', 'V2RETAIL', 'VADILALIND', 'VAIBHAVGBL', 'VAISHALI', 'VAKRANGEE', 'VALIANTORG', 'VARDHACRLC', 'VARDMNPOLY', 'VARROC', 'VASCONEQ', 'VASWANI', 'VBL', 'VEDL', 'VENKEYS', 'VENUSREM', 'VERTOZ', 'VESUVIUS', 'VETO', 'VGUARD', 'VHL', 'VICEROY', 'VIDEOIND', 'VIDHIING', 'VIJIFIN', 'VIKASECO', 'VIKASMCORP', 'VIKASPROP', 'VIKASWSP', 'VIMTALABS', 'VINATIORGA', 'VINDHYATEL', 'VINYLINDIA', 'VIPCLOTHNG', 'VIPIND', 'VIPULLTD', 'VISAKAIND', 'VISASTEEL', 'VISESHINFO', 'VISHAL', 'VISHNU', 'VISHWARAJ', 'VIVIDHA', 'VIVIMEDLAB', 'VLSFINANCE', 'VMART', 'VOLTAMP', 'VOLTAS', 'VRLLOG', 'VSSL', 'VSTIND', 'VSTTILLERS', 'VTL', 'WABAG', 'WABCOINDIA', 'WALCHANNAG', 'WANBURY', 'WATERBASE', 'WEALTH', 'WEBELSOLAR', 'WEIZMANIND', 'WELCORP', 'WELENT', 'WELINV', 'WELSPUNIND', 'WENDT', 'WESTLIFE', 'WHEELS', 'WHIRLPOOL', 'WILLAMAGOR', 'WINDMACHIN', 'WIPL', 'WIPRO', 'WOCKPHARMA', 'WONDERLA', 'WORTH', 'WSI', 'WSTCSTPAPR', 'XCHANGING', 'XELPMOC', 'XPROINDIA', 'YAARII', 'YESBANK', 'ZEEL', 'ZEELEARN', 'ZEEMEDIA', 'ZENITHEXPO', 'ZENITHSTL', 'ZENSARTECH', 'ZENTEC', 'ZICOM', 'ZODIACLOTH', 'ZODJRDMKJ', 'ZOTA', 'ZUARI', 'ZUARIGLOB', 'ZYDUSWELL']
+    /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
+    autocomplete(document.getElementById("myInput"), companys);
+
+  </script>
+
+</body>
+
+</html>

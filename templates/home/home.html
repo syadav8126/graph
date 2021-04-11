@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            h1 {
+                color: black;
+                font-family: verdana;
+                font-size: 300%;
+            }
+            p {
+                color: red;
+                font-family: courier;
+                font-size: 160%;
+                border: 2px solid powderblue;
+                padding: 10px;
+                margin: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        {% include 'home/title.html' %}
+
+        <center>
+            <h1> Enter Symbol</h1>
+            <input type ="search" name="search" placeholder="Enter Symbol ..." id="search"/>
+			<button type="button" onclick="my_function()"  target="_blank">SUBMIT</button>
+        </center>
+        <script>
+            function my_function() {
+                var x = document.getElementById("search");
+				v = x.value;
+				base_url = 'http://127.0.0.1:8000/plotly/company/';
+				base_url += x.value;
+				location.href=base_url
+            }
+		</script>
+    </body>
+</html>
